@@ -48,6 +48,12 @@ int main(int argc, char *argv[]) {
         puts("Send failed");
         break;
       }
+      // Receive a reply from the server
+      if (recv(sock, server_reply, DATA_LENGH, 0) < 0) {
+        puts("recv failed");
+        break;
+      }
+      puts(server_reply);
     } else if (strcmp(message, "logoff") == 0) {
       char *logoffMsg = "LOGOFF";
       // Send some data
@@ -55,6 +61,12 @@ int main(int argc, char *argv[]) {
         puts("Send failed");
         break;
       }
+      // Receive a reply from the server
+      if (recv(sock, server_reply, DATA_LENGH, 0) < 0) {
+        puts("recv failed");
+        break;
+      }
+      puts(server_reply);
     } else if (strcmp(message, "status") == 0) {
       char *logoffMsg = "STATUS_REQ";
       // Send some data

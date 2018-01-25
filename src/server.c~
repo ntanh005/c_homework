@@ -1,146 +1,256 @@
 #include <stdio.h>
-#include <string.h>  //strlen
-#include <stdlib.h>  //strlen
+#include <string.h>
+#include <stdlib.h>
 #include <sys/socket.h>
-#include <arpa/inet.h>  //inet_addr
-#include <unistd.h>     //write
-#include <pthread.h>    //for threading , link with lpthread
+#include <arpa/inet.h>
+#include <unistd.h>
+#include <pthread.h>
 
 #define PORT 8888
 #define DATA_LENGTH 1024
 
 // data area
+typedef struct _client {
+    int status;
+    int fd;
+} client;
+client* lstClient[100];
 int numConnected = 0;
 int numLogOn = 0;
-int numLogOff = 0;
 //<-------
-
-// the thread function
-
-void *connection_handler(void *);
-void* serverHandle(void* );
+// prototype function
 void prtStatus();
+void servConnect(int fd);
+void servDisConnect(int fd) ;
+void servLogOn1(int fd);
+void servLogOff(int fd);
+void howToUse();
+void servStatus(int fd);
+//<---
+// the thread function
+void* connection_handler(void*);
+void* serverHandle(void*);
+//<---
 
-int main(int argc, char *argv[]) {
-   char message[DATA_LENGTH];
-   pthread_t thread_id;
-   if( pthread_create(&thread_id, NULL, serverHandle, null) < 0 ){
-      perror("could not create thread");
-      return 1;
-   }
 
-   while(true){
-      memset(message, 0, DATA_LENGTH);
-      printf("server> ");
-      scanf("%s", message);
-      if(strcmp(message, "exit"){
-	 // exit
-         break;        
-      }else if(strcmp(message, "prtStatus"){
-         // print all status
-         printStatus();
-      }else{
-	  printf("not support cmd: %s", message);
-      }
-   }
-}
-void* serverHandle(void* ){
-  int socket_desc = 0;
-  int client_sock = 0;
-  int c = 0;
 
-  struct sockaddr_in server;
-  struct sockaddr_in client;
 
-  // Create socket
-  socket_desc = socket(AF_INET, SOCK_STREAM, 0);
-  if (socket_desc == -1) {
-    printf("Could not create socket");
-    return 1;
-  }
-  // Prepare the sockaddr_in structure
-  server.sin_family = AF_INET;
-  server.sin_addr.s_addr = INADDR_ANY;
-  server.sin_port = htons(PORT);
-
-  // Bind
-  if (bind(socket_desc, (struct sockaddr *)&server, sizeof(server)) < 0) {
-    // print the error message
-    perror("bind failed. Error");
-    return 1;
-  }
-  // Listen
-  listen(socket_desc, 10);
-  // Accept and incoming connection
-  puts("Waiting for incoming connections...");
-  c = sizeof(struct sockaddr_in);
-  pthread_t thread_id;
-  while ((client_sock = accept(socket_desc, (struct sockaddr *)&client,
-                               (socklen_t *)&c))) {
-    printf("New connection , socket fd is %d , ip is : %s , port : %d \n" ,
-             new_socket , inet_ntoa(client.sin_addr) , ntohs(client.sin_port));  
-    ++numConnected;
-    if (pthread_create(&thread_id, NULL, connection_handler,
-                       (void *)&client_sock) < 0) {
-      perror("could not create thread");
-      return 1;
+int main(int argc, char* argv[])
+{
+    char message[DATA_LENGTH];
+    pthread_t thread_id;
+    if (pthread_create(&thread_id, NULL, serverHandle, NULL) < 0) {
+        perror("could not create thread");
+        return 1;
     }
-    // Now join the thread , so that we dont terminate before the thread
-    // pthread_join( thread_id , NULL);
-    puts("Handler assigned");
-  }
-  if (client_sock < 0) {
-    perror("accept failed");
-    return 1;
-  }
-  return 0;
+
+    howToUse();
+
+    while (1) {
+        memset(message, 0, DATA_LENGTH);
+        scanf("%s", message);
+        // exit
+        if (strcmp(message, "exit") == 0) {            
+            break;
+        }
+        // print all status
+        else if (strcmp(message, "prtStatus") == 0) {
+            
+            prtStatus();
+        }
+        else {
+            howToUse();
+        }
+    }
+}
+void* serverHandle(void* p)
+{
+    int socket_desc = 0;
+    int client_sock = 0;
+    int c = 0;
+
+    struct sockaddr_in server;
+    struct sockaddr_in client;
+
+    // Create socket
+    socket_desc = socket(AF_INET, SOCK_STREAM, 0);
+    if (socket_desc == -1) {
+        printf("Could not create socket");
+        return;
+    }
+    // Prepare the sockaddr_in structure
+    server.sin_family = AF_INET;
+    server.sin_addr.s_addr = INADDR_ANY;
+    server.sin_port = htons(PORT);
+
+    // Bind
+    if (bind(socket_desc, (struct sockaddr*)&server, sizeof(server)) < 0) {
+        // print the error message
+        perror("bind failed. Error");
+        return;
+    }
+    // Listen
+    listen(socket_desc, 10);
+    // Accept and incoming connection
+    //puts("Waiting for incoming connections...");
+    c = sizeof(struct sockaddr_in);
+    
+    while ((client_sock = accept(socket_desc, (struct sockaddr*)&client,
+                (socklen_t*)&c))) {
+        servConnect(client_sock);
+    }
+    if (client_sock < 0) {
+        perror("accept failed");
+        return;
+    }
+    return;
 }
 
 /*
  * This will handle connection for each client
  * */
-void *connection_handler(void *socket_desc) {
-  // Get the socket descriptor
-  int sock = *(int *)socket_desc;
-  int read_size = 0;
-  char client_message[DATA_LENGTH];
-  memset(client_message, 0, DATA_LENGTH);
-  while ((read_size = recv(sock, client_message, DATA_LENGTH, 0)) > 0) {
-    // end of string marker
-    client_message[read_size] = '\0';
-    // Send the message back to client
-    // write(sock , client_message , strlen(client_message));
-    //puts(client_message);
-    if( strcpm(client_message, "LOGON") == 0){
-        // servLogon
-        
-    }else if( strcpm(client_message, "LOGOFF") == 0){
-        // servLogOff
-    }else if( strcpm(client_message, "STATUS_REQ") == 0){
-        // serv status request
-
-    }else{
-        // do nothing
-    }
-    
-    // clear the message buffer
+void* connection_handler(void* socket_desc)
+{
+    // Get the socket descriptor
+    int sock = *(int*)socket_desc;
+    int read_size = 0;
+    char client_message[DATA_LENGTH];
     memset(client_message, 0, DATA_LENGTH);
-  }
+    while ((read_size = recv(sock, client_message, DATA_LENGTH, 0)) > 0) {
+        // end of string marker
+        client_message[read_size] = '\0';
+        if (strcmp(client_message, "LOGON") == 0) {
+            servLogOn1(sock);
+        }
+        else if (strcmp(client_message, "LOGOFF") == 0) {
+            servLogOff(sock);
+        }
+        else if (strcmp(client_message, "STATUS_REQ") == 0) {
+            servStatus(sock);
+        }
+        else {
+            // do nothing
+        }
+        // clear the message buffer
+        memset(client_message, 0, DATA_LENGTH);
+    }
 
-  if (read_size == 0) {
-    puts("Client disconnected");
-    fflush(stdout);
-  }
+    if (read_size == 0) {
+        servDisconnect(sock);
+    }
+    else if (read_size == -1) {
+        servDisconnect(sock);
+        perror("recv failed");
+    }
 
-  else if (read_size == -1) {
-    perror("recv failed");
-  }
-
-  return 0;
+    return 0;
 }
 
-void prtStatus(){
-    printf("Number of connected client: %d", numConnected);
-    printf("Number of log on client: %d", numLogOn);
-    printf("Number of log off client: %d", numLogOff);
+void prtStatus()
+{
+    printf("Number of connected client: %d\n", numConnected);
+    printf("Number of log on client: %d\n", numLogOn);
+    printf("Number of log off client: %d\n", numConnected - numLogOn);
 }
+
+void servDisconnect(int fd)
+{   
+    int i = 0;
+    for (   i = 0; i < 100; i++) {
+        if (fd == lstClient[i]->fd) {
+            numConnected--;
+            if(lstClient[i]->status == 1){
+               numLogOn--;
+            }
+            free(lstClient[i]);
+            lstClient[i] = NULL;
+	    printf("Client disconnected\n");
+            break;
+        }
+    }
+}
+
+void servConnect(int fd)
+{
+    int i = 0;
+    int test = fd;
+    if( (numConnected + 1) < 100){       
+        for (i = 0; i < 100; i++) {
+            if (lstClient[i] == NULL) {
+                printf("New connection\n");
+                client* cl = (client*)malloc(sizeof(client));
+                cl->fd = fd;
+                cl->status = 0;
+                lstClient[i] = cl;
+                numConnected++;
+                pthread_t thread_id;
+                if (pthread_create(&thread_id, NULL, connection_handler,
+                        (void*)&test)
+                    < 0) {
+                    perror("could not create thread");
+                    return;
+                }
+                break;
+            }
+        }
+    }else{
+        close(fd);
+        printf("maximum of number of connection is 100\n");
+    }
+}
+
+void servLogOn1(int fd)
+{
+    int i = 0;
+    for (  i = 0; i < 100; i++) {
+        if (fd == lstClient[i]->fd) {
+            if (lstClient[i]->status == 0) {
+                lstClient[i]->status = 1;
+                numLogOn++;
+            }
+            break;
+        }
+    }
+    char* msg = "OK";
+    write(fd, msg, strlen(msg));
+}
+
+void servLogOff(int fd)
+{
+    int i;
+    for ( i = 0; i < 100; i++) {
+        if (fd == lstClient[i]->fd) {
+            if (lstClient[i]->status == 1) {
+                lstClient[i]->status = 0;
+                numLogOn--;
+            }
+            break;
+        }
+    }
+    char* msg = "OK";
+    write(fd, msg, strlen(msg));
+}
+
+void servStatus(int fd)
+{
+    int status;
+    int i;
+    for (  i = 0; i < 100; i++) {
+        if (fd == lstClient[i]->fd) {
+            status = lstClient[i]->status;
+            break;
+        }
+    }
+    if (status == 1) {
+        write(fd, "ON", strlen("ON"));
+    }
+    else {
+        write(fd, "OFF", strlen("OFF"));
+    }
+}
+
+void howToUse(){
+    printf("prtStatus: Print client statuses\n");
+    printf("exit: Exit\n");
+} 
+
