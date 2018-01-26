@@ -12,6 +12,7 @@ int main(int argc, char *argv[]) {
   struct sockaddr_in server;
   char message[DATA_LENGH];
   char server_reply[DATA_LENGH];
+  int rt_size = 1;
 
   // Create socket
   sock = socket(AF_INET, SOCK_STREAM, 0);
@@ -33,7 +34,7 @@ int main(int argc, char *argv[]) {
   howToUse();
 
   // keep communicating with server
-  while (1) {
+  while (rt_size > 0) {
     // clear the message buffer
     memset(server_reply, 0, DATA_LENGH);
     memset(message, 0, DATA_LENGH);
@@ -49,11 +50,17 @@ int main(int argc, char *argv[]) {
         break;
       }
       // Receive a reply from the server
-      if (recv(sock, server_reply, DATA_LENGH, 0) < 0) {
-        puts("recv failed");
-        break;
+      rt_size = recv(sock, server_reply, DATA_LENGH, 0);
+      if (rt_size < 0) {
+         puts("recv failed ");
+         break;
+      }else if (rt_size == 0) {
+         puts("server is termminated ");
+         break;
+      }else{
+         printf(">>>%s\n",server_reply);
       }
-      printf(">>>%s\n",server_reply);
+      
     } else if (strcmp(message, "logoff") == 0) {
       char *logoffMsg = "LOGOFF";
       // Send some data
@@ -62,11 +69,16 @@ int main(int argc, char *argv[]) {
         break;
       }
       // Receive a reply from the server
-      if (recv(sock, server_reply, DATA_LENGH, 0) < 0) {
-        puts("recv failed");
-        break;
+      rt_size = recv(sock, server_reply, DATA_LENGH, 0);
+      if (rt_size < 0) {
+         puts("recv failed ");
+         break;
+      }else if (rt_size == 0) {
+         puts("server is termminated ");
+         break;
+      }else{
+         printf(">>>%s\n",server_reply);
       }
-      printf(">>>%s\n",server_reply);
     } else if (strcmp(message, "status") == 0) {
       char *logoffMsg = "STATUS_REQ";
       // Send some data
@@ -75,11 +87,16 @@ int main(int argc, char *argv[]) {
         break;
       }
       // Receive a reply from the server
-      if (recv(sock, server_reply, DATA_LENGH, 0) < 0) {
-        puts("recv failed");
-        break;
+      rt_size = recv(sock, server_reply, DATA_LENGH, 0);
+      if (rt_size < 0) {
+         puts("recv failed ");
+         break;
+      }else if (rt_size == 0) {
+         puts("server is termminated ");
+         break;
+      }else{
+         printf(">>>%s\n",server_reply);
       }
-      printf(">>>%s\n",server_reply);
     } else if (strcmp(message, "exit") == 0) {
 	break;
     } else {

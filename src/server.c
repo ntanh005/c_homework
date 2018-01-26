@@ -32,14 +32,19 @@ void* connection_handler(void*);
 void* serverHandle(void*);
 //<---
 
-
-
-
 int main(int argc, char* argv[])
 {
     char message[DATA_LENGTH];
     pthread_t thread_id;
-    if (pthread_create(&thread_id, NULL, serverHandle, NULL) < 0) {
+    int socket_desc = 0;   
+    // Create socket
+    socket_desc = socket(AF_INET, SOCK_STREAM, 0);
+    if (socket_desc == -1) {
+        printf("Could not create socket");
+        return;
+    }
+
+    if (pthread_create(&thread_id, NULL, serverHandle, (void*) &socket_desc) < 0) {
         perror("could not create thread");
         return 1;
     }
@@ -62,6 +67,9 @@ int main(int argc, char* argv[])
             howToUse();
         }
     }
+    shutdown(socket_desc, 0);
+    close(socket_desc);
+    pthread_join( thread_id, NULL ) ;
 }
 void* serverHandle(void* p)
 {
@@ -73,15 +81,13 @@ void* serverHandle(void* p)
     struct sockaddr_in client;
 
     // Create socket
-    socket_desc = socket(AF_INET, SOCK_STREAM, 0);
-    if (socket_desc == -1) {
-        printf("Could not create socket");
-        return;
-    }
+    socket_desc = (*(int*)p);
     // Prepare the sockaddr_in structure
     server.sin_family = AF_INET;
     server.sin_addr.s_addr = INADDR_ANY;
     server.sin_port = htons(PORT);
+
+    setsockopt(socket_desc, SOL_SOCKET, SO_REUSEADDR, &(int){ 1 }, sizeof(int));
 
     // Bind
     if (bind(socket_desc, (struct sockaddr*)&server, sizeof(server)) < 0) {
@@ -96,13 +102,10 @@ void* serverHandle(void* p)
     c = sizeof(struct sockaddr_in);
     
     while ((client_sock = accept(socket_desc, (struct sockaddr*)&client,
-                (socklen_t*)&c))) {
+                (socklen_t*)&c)) >= 0) {
         servConnect(client_sock);
     }
-    if (client_sock < 0) {
-        perror("accept failed");
-        return;
-    }
+    
     return;
 }
 
