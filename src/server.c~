@@ -156,7 +156,10 @@ void prtStatus()
 void servDisconnect(int fd)
 {   
     int i = 0;
-    for (   i = 0; i < 100; i++) {
+    struct sockaddr_in  client;
+    int len = sizeof( struct sockaddr_in );
+    
+    for ( i = 0; i < 100; i++) {
         if (fd == lstClient[i]->fd) {
             numConnected--;
             if(lstClient[i]->status == 1){
@@ -164,29 +167,36 @@ void servDisconnect(int fd)
             }
             free(lstClient[i]);
             lstClient[i] = NULL;
-	    printf("Client disconnected\n");
+            if(getpeername(fd, (struct sockaddr *)&client, &len) != -1){
+               printf(">>>%s:%u disconnected\n", inet_ntoa(client.sin_addr), (unsigned)ntohs(client.sin_port));
+            }
             break;
         }
     }
+    return;
 }
 
 void servConnect(int fd)
 {
+    client* cl = NULL;
     int i = 0;
     int test = fd;
+    struct sockaddr_in  client;
+    int len = sizeof( struct sockaddr_in );
+
     if( (numConnected + 1) < 100){       
         for (i = 0; i < 100; i++) {
             if (lstClient[i] == NULL) {
-                printf("New connection\n");
-                client* cl = (client*)malloc(sizeof(client));
+                if(getpeername(fd, (struct sockaddr *)&client, &len) != -1){
+                    printf(">>>%s:%u connected\n", inet_ntoa(client.sin_addr), (unsigned)ntohs(client.sin_port));    
+                }
+                cl = malloc(sizeof(client));
                 cl->fd = fd;
                 cl->status = 0;
                 lstClient[i] = cl;
                 numConnected++;
                 pthread_t thread_id;
-                if (pthread_create(&thread_id, NULL, connection_handler,
-                        (void*)&test)
-                    < 0) {
+                if (pthread_create(&thread_id, NULL, connection_handler,(void*)&test)< 0) {
                     perror("could not create thread");
                     return;
                 }
@@ -250,7 +260,7 @@ void servStatus(int fd)
 }
 
 void howToUse(){
-    printf("prtStatus: Print client statuses\n");
-    printf("exit: Exit\n");
+    printf("\tprtStatus: Print client statuses\n");
+    printf("\texit: Exit\n");
 } 
 
